@@ -1,0 +1,30 @@
+package com.woridge.chatbot.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import java.time.LocalDateTime;
+
+@Data
+@Entity
+@Table(name = "knowledge_base")
+public class KnowledgeChunk {
+
+    @Id
+    @GeneratedValue(
+            strategy = GenerationType.IDENTITY
+    )
+    private Long id;
+
+    @Column(columnDefinition = "TEXT")
+    private String contenu;
+
+    private String source;
+
+    @Column(name = "doc_type")
+    private String docType;
+
+    private String tenant;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+}
