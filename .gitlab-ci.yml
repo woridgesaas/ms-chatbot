@@ -1,0 +1,45 @@
+stages:
+  - build
+  - test
+  - package
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+cache:
+  paths:
+    - .m2/repository
+
+build:
+  stage: build
+  image: maven:3.9.6-eclipse-temurin-21
+  script:
+    - mvn clean compile
+  artifacts:
+    paths:
+      - target/
+    expire_in: 15 minutes
+
+#test:
+#  stage: test
+#  image: maven:3.9.6-eclipse-temurin-21
+#  needs:
+#    - job: build
+#      artifacts: true
+#  script:
+#    - mvn test
+
+#package:
+#  stage: package
+#  image: maven:3.9.6-eclipse-temurin-21
+#  needs:
+#    - job: build
+#  script:
+#    - mvn package -DskipTests
+#  artifacts:
+#    name: "chatbot-release"
+#    paths:
+#      - target/*.jar
+#  rules:
+#    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+#    - if: '$CI_COMMIT_BRANCH == "main"'
