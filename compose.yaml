@@ -15,7 +15,8 @@ services:
       - chatbot_db_data:/var/lib/postgresql/data
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL",
+             "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,6 +37,17 @@ services:
     networks:
       - woridge-external-network
 
+  ollama:
+    image: ollama/ollama
+    container_name: ms-chatbot-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - woridge-external-network
+
   backend:
     build:
       context: .
@@ -53,6 +65,8 @@ services:
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
+      # ── Ollama local ──
+      OLLAMA_URL: http://ollama:11434
     ports:
       - "${SERVER_PORT}:8080"
     restart: always
@@ -77,6 +91,7 @@ services:
 
 volumes:
   chatbot_db_data:
+  ollama_data:      # ← modèles persistés
 
 networks:
   woridge-external-network:

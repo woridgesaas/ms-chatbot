@@ -2,6 +2,7 @@ package com.woridge.chatbot.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
@@ -15,14 +16,27 @@ public class KnowledgeChunk {
     )
     private Long id;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(
+            columnDefinition = "TEXT",
+            nullable = false
+    )
     private String contenu;
+
+    // insertable=false → JPA ne touche pas
+    // vecteur est géré par jdbcTemplate
+    @Column(
+            name = "vecteur",
+            insertable = false,
+            updatable = false
+    )
+    private String vecteur;
 
     private String source;
 
     @Column(name = "doc_type")
     private String docType;
 
+    @Column(nullable = false)
     private String tenant;
 
     @Column(name = "created_at")

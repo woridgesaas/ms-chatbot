@@ -63,14 +63,18 @@ server:
 
 woridge:
   classifier:
-    url: ${CLASSIFIER_URL}
+    url: ${CLASSIFIER_URL:http://localhost:5000}
   groq:
     api-key: ${GROQ_API_KEY}
     api-url: https://api.groq.com/openai/v1
     model: llama-3.3-70b-versatile
-    embedding-model: nomic-embed-text-v1.5
-    max-tokens: 125
+    max-tokens: 150
+  ollama:
+    url: ${OLLAMA_URL:http://localhost:11434}
+    model: mistral
+    enabled: true       # ← true = Ollama
+    # ← false = Groq
   rag:
     chunk-size: 80
-    top-k: 3
+    top-k: 5
     confidence-threshold: 0.45
