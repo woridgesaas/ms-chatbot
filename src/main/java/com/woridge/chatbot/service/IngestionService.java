@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation
         .Transactional;
@@ -32,6 +33,8 @@ public class IngestionService {
 
     private final KnowledgeChunkRepository chunkRepo;
     private final WoridgeProperties properties;
+    private final EmbeddingService embeddingService;
+    private final JdbcTemplate jdbcTemplate;
 
     // ── Ingestion depuis URL ──
     @Transactional
@@ -40,18 +43,24 @@ public class IngestionService {
             DocType docType,
             String tenant) {
 
-        log.info("Ingestion URL : {} tenant: {}",
-                fileUrl, tenant);
+        log.info(
+                "Ingestion URL : {} tenant: {}",
+                fileUrl, tenant
+        );
 
         try (InputStream is =
                      new URL(fileUrl).openStream()) {
 
             String text = extractTextFromPdf(is);
-            ingestText(text, docType, fileUrl, tenant);
+            ingestText(
+                    text, docType, fileUrl, tenant
+            );
 
         } catch (Exception e) {
-            log.error("Erreur ingestion URL : {}",
-                    e.getMessage());
+            log.error(
+                    "Erreur ingestion URL : {}",
+                    e.getMessage()
+            );
             throw new IngestionFailedException(
                     "Ingestion URL echouee : "
                             + e.getMessage()
@@ -66,8 +75,10 @@ public class IngestionService {
             DocType docType,
             String tenant) {
 
-        log.info("Ingestion fichier : {} tenant: {}",
-                file.getName(), tenant);
+        log.info(
+                "Ingestion fichier : {} tenant: {}",
+                file.getName(), tenant
+        );
 
         if (!file.exists() || file.length() == 0) {
             throw new FileEmptyException(
@@ -77,7 +88,8 @@ public class IngestionService {
 
         try {
             String text;
-            String name = file.getName().toLowerCase();
+            String name =
+                    file.getName().toLowerCase();
 
             if (name.endsWith(".pdf")) {
                 try (PDDocument doc =
@@ -87,7 +99,9 @@ public class IngestionService {
                 }
             } else {
                 text = new String(
-                        Files.readAllBytes(file.toPath())
+                        Files.readAllBytes(
+                                file.toPath()
+                        )
                 );
             }
 
@@ -99,8 +113,10 @@ public class IngestionService {
         } catch (IngestionFailedException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Erreur ingestion fichier : {}",
-                    e.getMessage());
+            log.error(
+                    "Erreur ingestion fichier : {}",
+                    e.getMessage()
+            );
             throw new IngestionFailedException(
                     "Ingestion fichier echouee : "
                             + e.getMessage()
@@ -122,8 +138,7 @@ public class IngestionService {
             );
         }
 
-        // Supprimer les chunks existants
-        // pour cette source et ce tenant
+        // Supprimer chunks existants
         chunkRepo.deleteByTenantAndSource(
                 tenant, source
         );
@@ -134,30 +149,67 @@ public class IngestionService {
                 properties.getRag().getChunkSize()
         );
 
-        log.info("{} chunks a ingerer pour source: {}",
-                chunks.size(), source);
+        log.info(
+                "{} chunks a ingerer pour source: {}",
+                chunks.size(), source
+        );
 
         int saved = 0;
         for (String chunk : chunks) {
 
-            // Ignorer les chunks trop courts
             if (chunk.trim().length() < 20) continue;
 
-            KnowledgeChunk kc = new KnowledgeChunk();
-            kc.setContenu(chunk.trim());
-            kc.setSource(source);
-            kc.setDocType(docType.name());
-            kc.setTenant(tenant);
-            kc.setCreatedAt(LocalDateTime.now());
+            // ── Générer vecteur pgvector ──
+            float[] vector = embeddingService
+                    .embed(chunk.trim());
 
-            chunkRepo.save(kc);
+            if (vector != null) {
+                // ── Sauvegarder avec vecteur ──
+                String pgVector = embeddingService
+                        .toPostgresVector(vector);
+
+                jdbcTemplate.update("""
+                    INSERT INTO knowledge_base
+                      (contenu, vecteur, source,
+                       doc_type, tenant, created_at)
+                    VALUES
+                      (?, ?::vector, ?, ?, ?, NOW())
+                    """,
+                        chunk.trim(),
+                        pgVector,
+                        source,
+                        docType.name(),
+                        tenant
+                );
+
+                log.debug(
+                        "Chunk ingéré avec vecteur"
+                );
+
+            } else {
+                // ── Fallback sans vecteur ──
+                log.warn(
+                        "Embedding échoué — "
+                                + "fallback sans vecteur"
+                );
+                KnowledgeChunk kc =
+                        new KnowledgeChunk();
+                kc.setContenu(chunk.trim());
+                kc.setSource(source);
+                kc.setDocType(docType.name());
+                kc.setTenant(tenant);
+                kc.setCreatedAt(
+                        LocalDateTime.now()
+                );
+                chunkRepo.save(kc);
+            }
             saved++;
         }
 
         log.info(
                 "Ingestion terminee — {} chunks "
-                        + "sauvegardes sur {} pour tenant: {}",
-                saved, chunks.size(), tenant
+                        + "pour tenant: {}",
+                saved, tenant
         );
     }
 
@@ -168,13 +220,13 @@ public class IngestionService {
 
         List<String> chunks = new ArrayList<>();
 
-        // Nettoyer le texte
         String cleaned = text
                 .replaceAll("\\s+", " ")
                 .trim();
 
         String[] words = cleaned.split(" ");
-        StringBuilder current = new StringBuilder();
+        StringBuilder current =
+                new StringBuilder();
         int count = 0;
 
         for (String word : words) {
@@ -190,9 +242,10 @@ public class IngestionService {
             }
         }
 
-        // Dernier chunk
         if (current.length() > 0) {
-            chunks.add(current.toString().trim());
+            chunks.add(
+                    current.toString().trim()
+            );
         }
 
         return chunks;
@@ -201,7 +254,8 @@ public class IngestionService {
     // ── Extraction texte PDF ──
     private String extractTextFromPdf(
             InputStream is) throws Exception {
-        try (PDDocument doc = PDDocument.load(is)) {
+        try (PDDocument doc =
+                     PDDocument.load(is)) {
             return new PDFTextStripper()
                     .getText(doc);
         }

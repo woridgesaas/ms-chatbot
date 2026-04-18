@@ -11,7 +11,7 @@ target/
 .vscode/
 
 .env
-.env.*
+
 src/main/resources/application-dev.yml
 /infra/script/
 
