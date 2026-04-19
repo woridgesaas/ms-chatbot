@@ -1,12 +1,9 @@
 package com.woridge.chatbot.controller;
 
-import com.woridge.chatbot.dto.SuccessResponse;
 import com.woridge.chatbot.dto.request.ChatRequest;
 import com.woridge.chatbot.dto.response.ChatResponse;
-import com.woridge.chatbot.exception.chat
-        .TenantMissingException;
+import com.woridge.chatbot.dto.SuccessResponse;
 import com.woridge.chatbot.service.ChatService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -21,63 +18,55 @@ public class ChatController {
     private final ChatService chatService;
 
     @PostMapping
-    public ResponseEntity<SuccessResponse<ChatResponse>>
-    chat(
-            @Valid @RequestBody ChatRequest request,
+    public ResponseEntity<SuccessResponse<ChatResponse>> chat(
+            @RequestBody ChatRequest request,
             @RequestHeader(
-                    value  = "X-Subdomain",
+                    value = "X-User-CIN",
                     required = false
-            ) String subdomain,
+            ) String userCinHeader,
             @RequestHeader(
-                    value  = "Authorization",
+                    value = "X-User-Role",
                     required = false
-            ) String authorization) {
+            ) String roleHeader,
+            @RequestHeader(
+                    value = "X-Subdomain",
+                    required = false
+            ) String subdomain) {
 
-        // ── Tenant depuis Kong X-Subdomain ──
-        // Kong injecte automatiquement ce header
-        // depuis le plugin tenant (handler.lua)
-        // localhost → "dev-local"
-        // atlas.woridge.com → "atlas"
+        log.info(
+                "Chat — user:{} role:{} tenant:{}",
+                userCinHeader, roleHeader, subdomain
+        );
+
+        // ── Tenant depuis Kong ──
         if (subdomain != null
                 && !subdomain.isBlank()) {
             request.setTenant(subdomain);
+        } else {
+            request.setTenant("dev-local");
         }
 
-        // ── Validation tenant ──
-        if (request.getTenant() == null
-                || request.getTenant().isBlank()) {
-            throw new TenantMissingException(
-                    "Tenant non identifié — "
-                            + "X-Subdomain header manquant"
-            );
+        // ── UserId depuis Kong (X-User-CIN) ──
+        if (userCinHeader != null
+                && !userCinHeader.isBlank()) {
+            request.setUserId(userCinHeader);
         }
 
-        log.info(
-                "Chat — tenant: {} user: {} role: {}",
-                request.getTenant(),
-                request.getUserId(),
-                request.getRole()
-        );
+        // ── Role depuis Kong ──
+        if (roleHeader != null
+                && !roleHeader.isBlank()) {
+            request.setRole(roleHeader);
+        }
 
         ChatResponse response =
                 chatService.chat(request);
 
         return ResponseEntity.ok(
-                SuccessResponse.createSuccessResponse(
-                        response,
-                        "Réponse générée avec succès"
-                )
-        );
-    }
-
-    @GetMapping("/health")
-    public ResponseEntity<SuccessResponse<String>>
-    health() {
-        return ResponseEntity.ok(
-                SuccessResponse.createSuccessResponse(
-                        "OK",
-                        "ms-chatbot opérationnel"
-                )
+                SuccessResponse
+                        .createSuccessResponse(
+                                response,
+                                "Réponse générée avec succès"
+                        )
         );
     }
 }

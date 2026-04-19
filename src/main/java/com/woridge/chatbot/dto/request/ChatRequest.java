@@ -1,26 +1,17 @@
 package com.woridge.chatbot.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class ChatRequest {
 
-    @NotBlank(message = "La question ne peut pas être vide")
+    @NotBlank(message = "Question requise")
     private String question;
 
-    @NotBlank(message = "L'identifiant utilisateur est requis")
+    // ← plus obligatoires
+    // Injectés par Kong via headers
     private String userId;
-
-    @NotBlank(message = "Le rôle est requis")
     private String role;
-
-    @NotBlank(message = "Le tenant est requis")
     private String tenant;
 }
