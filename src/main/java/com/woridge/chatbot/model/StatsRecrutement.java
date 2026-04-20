@@ -17,9 +17,6 @@ public class StatsRecrutement {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "tenant", nullable = false)
-    private String tenant;
-
     @Column(name = "mois", nullable = false)
     private LocalDate mois;
 

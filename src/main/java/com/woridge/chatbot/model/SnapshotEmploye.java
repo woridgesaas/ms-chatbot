@@ -52,9 +52,6 @@ public class SnapshotEmploye {
     @Column(name = "solde_conge")
     private Integer soldeConge;
 
-    @Column(name = "tenant", nullable = false)
-    private String tenant;
-
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 

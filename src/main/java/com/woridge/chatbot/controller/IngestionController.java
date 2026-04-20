@@ -11,7 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart
+        .MultipartFile;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,9 +28,10 @@ public class IngestionController {
     @PostMapping("/upload")
     public ResponseEntity<SuccessResponse<String>>
     upload(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("docType") String docType,
-            @RequestParam("tenant") String tenant) {
+            @RequestParam("file")
+            MultipartFile file,
+            @RequestParam("docType")
+            String docType) {
 
         if (file.isEmpty()) {
             throw new FileEmptyException(
@@ -37,8 +39,10 @@ public class IngestionController {
             );
         }
 
-        log.info("Upload — file: {} tenant: {}",
-                file.getOriginalFilename(), tenant);
+        log.info(
+                "Upload — file: {}",
+                file.getOriginalFilename()
+        );
 
         try {
             Path tempPath = Files.createTempFile(
@@ -51,24 +55,27 @@ public class IngestionController {
                     tempPath.toFile(),
                     DocType.valueOf(
                             docType.toUpperCase()
-                    ),
-                    tenant
+                    )
             );
 
             Files.deleteIfExists(tempPath);
 
             return ResponseEntity.ok(
-                    SuccessResponse.createSuccessResponse(
-                            file.getOriginalFilename(),
-                            "Document ingéré avec succès"
-                    )
+                    SuccessResponse
+                            .createSuccessResponse(
+                                    file.getOriginalFilename(),
+                                    "Document ingéré "
+                                            + "avec succès"
+                            )
             );
 
         } catch (IngestionFailedException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Erreur upload : {}",
-                    e.getMessage());
+            log.error(
+                    "Erreur upload : {}",
+                    e.getMessage()
+            );
             throw new IngestionFailedException(
                     e.getMessage()
             );
@@ -78,13 +85,17 @@ public class IngestionController {
     @PostMapping("/text")
     public ResponseEntity<SuccessResponse<String>>
     ingestText(
-            @RequestParam("content") String content,
-            @RequestParam("docType") String docType,
-            @RequestParam("tenant") String tenant,
-            @RequestParam("source") String source) {
+            @RequestParam("content")
+            String content,
+            @RequestParam("docType")
+            String docType,
+            @RequestParam("source")
+            String source) {
 
-        log.info("Text ingestion — source: {} tenant: {}",
-                source, tenant);
+        log.info(
+                "Text ingestion — source: {}",
+                source
+        );
 
         try {
             Path tempPath = Files.createTempFile(
@@ -96,24 +107,27 @@ public class IngestionController {
                     tempPath.toFile(),
                     DocType.valueOf(
                             docType.toUpperCase()
-                    ),
-                    tenant
+                    )
             );
 
             Files.deleteIfExists(tempPath);
 
             return ResponseEntity.ok(
-                    SuccessResponse.createSuccessResponse(
-                            source,
-                            "Texte ingéré avec succès"
-                    )
+                    SuccessResponse
+                            .createSuccessResponse(
+                                    source,
+                                    "Texte ingéré "
+                                            + "avec succès"
+                            )
             );
 
         } catch (IngestionFailedException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Erreur ingestion text : {}",
-                    e.getMessage());
+            log.error(
+                    "Erreur ingestion text : {}",
+                    e.getMessage()
+            );
             throw new IngestionFailedException(
                     e.getMessage()
             );

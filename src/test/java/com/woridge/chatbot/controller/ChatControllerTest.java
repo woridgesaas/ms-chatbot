@@ -51,7 +51,9 @@ class ChatControllerTest {
 
         ChatResponse mockResponse =
                 ChatResponse.builder()
-                        .answer("18 jours restants")
+                        .answer(
+                                "18 jours restants"
+                        )
                         .intent("SOLDE_CONGE")
                         .confidence(0.98)
                         .build();
@@ -63,19 +65,21 @@ class ChatControllerTest {
         // ── When & Then ──
         mockMvc.perform(post("/api/chat")
                         .contentType(
-                                MediaType.APPLICATION_JSON
+                                MediaType
+                                        .APPLICATION_JSON
                         )
                         .header(
-                                "X-User-CIN", "S760251"
+                                "X-User-CIN",
+                                "S760251"
                         )
                         .header(
-                                "X-User-Role", "EMPLOYEE"
-                        )
-                        .header(
-                                "X-Subdomain", "dev-local"
+                                "X-User-Role",
+                                "EMPLOYEE"
                         )
                         .content(objectMapper
-                                .writeValueAsString(request))
+                                .writeValueAsString(
+                                        request
+                                ))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath(
@@ -93,7 +97,7 @@ class ChatControllerTest {
 
     @Test
     @DisplayName(
-            "Tenant depuis Kong écrase le body"
+            "Kong headers écrasent le body"
     )
     void chat_kongHeaders_overrideBody()
             throws Exception {
@@ -101,7 +105,7 @@ class ChatControllerTest {
         ChatRequest request = new ChatRequest();
         request.setQuestion("mon solde");
         request.setUserId("HACKER");
-        request.setTenant("hacker-tenant");
+        request.setRole("ADMIN");
 
         ChatResponse mockResponse =
                 ChatResponse.builder()
@@ -115,30 +119,30 @@ class ChatControllerTest {
 
         mockMvc.perform(post("/api/chat")
                         .contentType(
-                                MediaType.APPLICATION_JSON
+                                MediaType
+                                        .APPLICATION_JSON
                         )
                         .header(
-                                "X-User-CIN", "S760251"
+                                "X-User-CIN",
+                                "S760251"
                         )
                         .header(
-                                "X-User-Role", "EMPLOYEE"
-                        )
-                        .header(
-                                "X-Subdomain",
-                                "vrai-tenant"
+                                "X-User-Role",
+                                "EMPLOYEE"
                         )
                         .content(objectMapper
-                                .writeValueAsString(request))
+                                .writeValueAsString(
+                                        request
+                                ))
                 )
                 .andExpect(status().isOk());
 
-        // Vérifier que ChatService reçoit
-        // les valeurs de Kong (pas du body)
+        // ChatService reçoit les valeurs
+        // de Kong (pas du body)
         verify(chatService).chat(argThat(
                 req ->
-                        req.getUserId().equals("S760251")
-                                && req.getTenant()
-                                .equals("vrai-tenant")
+                        req.getUserId()
+                                .equals("S760251")
                                 && req.getRole()
                                 .equals("EMPLOYEE")
         ));
@@ -146,50 +150,7 @@ class ChatControllerTest {
 
     @Test
     @DisplayName(
-            "Sans X-Subdomain → tenant dev-local"
-    )
-    void chat_noSubdomain_defaultsToDevLocal()
-            throws Exception {
-
-        ChatRequest request = new ChatRequest();
-        request.setQuestion("mon solde");
-
-        ChatResponse mockResponse =
-                ChatResponse.builder()
-                        .answer("réponse")
-                        .intent("SOLDE_CONGE")
-                        .confidence(0.9)
-                        .build();
-
-        when(chatService.chat(any()))
-                .thenReturn(mockResponse);
-
-        mockMvc.perform(post("/api/chat")
-                        .contentType(
-                                MediaType.APPLICATION_JSON
-                        )
-                        .header(
-                                "X-User-CIN", "S760251"
-                        )
-                        .header(
-                                "X-User-Role", "EMPLOYEE"
-                        )
-                        // PAS de X-Subdomain
-                        .content(objectMapper
-                                .writeValueAsString(request))
-                )
-                .andExpect(status().isOk());
-
-        // Vérifier que tenant = "dev-local"
-        verify(chatService).chat(argThat(
-                req -> req.getTenant()
-                        .equals("dev-local")
-        ));
-    }
-
-    @Test
-    @DisplayName(
-            "Sans X-User-CIN → userId pas modifié"
+            "Sans X-User-CIN → userId body gardé"
     )
     void chat_noUserCin_keepsBodyUserId()
             throws Exception {
@@ -211,14 +172,13 @@ class ChatControllerTest {
 
         mockMvc.perform(post("/api/chat")
                         .contentType(
-                                MediaType.APPLICATION_JSON
-                        )
-                        // PAS de X-User-CIN
-                        .header(
-                                "X-Subdomain", "dev-local"
+                                MediaType
+                                        .APPLICATION_JSON
                         )
                         .content(objectMapper
-                                .writeValueAsString(request))
+                                .writeValueAsString(
+                                        request
+                                ))
                 )
                 .andExpect(status().isOk());
 

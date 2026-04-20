@@ -20,53 +20,26 @@ public class ChatController {
     @PostMapping
     public ResponseEntity<SuccessResponse<ChatResponse>> chat(
             @RequestBody ChatRequest request,
-            @RequestHeader(
-                    value = "X-User-CIN",
-                    required = false
-            ) String userCinHeader,
-            @RequestHeader(
-                    value = "X-User-Role",
-                    required = false
-            ) String roleHeader,
-            @RequestHeader(
-                    value = "X-Subdomain",
-                    required = false
-            ) String subdomain) {
+            @RequestHeader(value = "X-User-CIN", required = false) String userCinHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String roleHeader) {
 
-        log.info(
-                "Chat — user:{} role:{} tenant:{}",
-                userCinHeader, roleHeader, subdomain
-        );
+        log.info("Chat — user:{} role:{}", userCinHeader, roleHeader);
 
-        // ── Tenant depuis Kong ──
-        if (subdomain != null
-                && !subdomain.isBlank()) {
-            request.setTenant(subdomain);
-        } else {
-            request.setTenant("dev-local");
-        }
-
-        // ── UserId depuis Kong (X-User-CIN) ──
-        if (userCinHeader != null
-                && !userCinHeader.isBlank()) {
+        if (userCinHeader != null && !userCinHeader.isBlank()) {
             request.setUserId(userCinHeader);
         }
 
-        // ── Role depuis Kong ──
-        if (roleHeader != null
-                && !roleHeader.isBlank()) {
+        if (roleHeader != null && !roleHeader.isBlank()) {
             request.setRole(roleHeader);
         }
 
-        ChatResponse response =
-                chatService.chat(request);
+        ChatResponse response = chatService.chat(request);
 
         return ResponseEntity.ok(
-                SuccessResponse
-                        .createSuccessResponse(
-                                response,
-                                "Réponse générée avec succès"
-                        )
+                SuccessResponse.createSuccessResponse(
+                        response,
+                        "Réponse générée avec succès"
+                )
         );
     }
 }

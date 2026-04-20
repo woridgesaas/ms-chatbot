@@ -11,11 +11,12 @@ import java.util.Optional;
 public interface SnapshotEmployeRepository
         extends JpaRepository<SnapshotEmploye, String> {
 
-    Optional<SnapshotEmploye> findByUserIdAndTenant(
-            String userId, String tenant
+    Optional<SnapshotEmploye> findByUserId(
+            String userId
     );
 
-    List<SnapshotEmploye> findAllByTenant(String tenant);
-
-    long countByTenant(String tenant);
+    // JpaRepository fournit déjà :
+    //   findAll()  → tous les employés
+    //   count()    → total
+    // Pas besoin de les redéfinir
 }

@@ -36,9 +36,6 @@ public class KnowledgeChunk {
     @Column(name = "doc_type")
     private String docType;
 
-    @Column(nullable = false)
-    private String tenant;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

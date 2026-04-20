@@ -24,12 +24,11 @@ public class RagService {
 
     // ── Point d'entrée principal ──
     public List<String> findRelevantChunks(
-            String question,
-            String tenant) {
+            String question) {
 
         // Essayer pgvector d'abord
         List<String> pgResult =
-                findWithPgVector(question, tenant);
+                findWithPgVector(question);
 
         if (!pgResult.isEmpty()) {
             log.info(
@@ -43,13 +42,12 @@ public class RagService {
         log.warn(
                 "pgvector vide → fallback TF-IDF"
         );
-        return findWithTfIdf(question, tenant);
+        return findWithTfIdf(question);
     }
 
     // ── Recherche pgvector ──
     private List<String> findWithPgVector(
-            String question,
-            String tenant) {
+            String question) {
 
         try {
             // Vectoriser la question
@@ -68,13 +66,11 @@ public class RagService {
                     jdbcTemplate.queryForList("""
                     SELECT contenu
                     FROM knowledge_base
-                    WHERE tenant = ?
-                      AND vecteur IS NOT NULL
+                    WHERE vecteur IS NOT NULL
                     ORDER BY vecteur <=> ?::vector
                     LIMIT 5
                     """,
                             String.class,
-                            tenant,
                             pgVector
                     );
 
@@ -95,23 +91,19 @@ public class RagService {
 
     // ── Fallback TF-IDF ──
     private List<String> findWithTfIdf(
-            String question,
-            String tenant) {
+            String question) {
 
         List<KnowledgeChunk> chunks =
-                chunkRepo.findAllByTenant(tenant);
+                chunkRepo.findAll();
 
         if (chunks.isEmpty()) {
-            log.info(
-                    "Aucun chunk pour tenant: {}",
-                    tenant
-            );
+            log.info("Aucun chunk disponible");
             return List.of();
         }
 
         log.info(
-                "{} chunks TF-IDF pour tenant: {}",
-                chunks.size(), tenant
+                "{} chunks TF-IDF",
+                chunks.size()
         );
 
         List<String> contenus = chunks.stream()

@@ -40,21 +40,18 @@ public class IngestionService {
     @Transactional
     public void ingestFromUrl(
             String fileUrl,
-            DocType docType,
-            String tenant) {
+            DocType docType) {
 
         log.info(
-                "Ingestion URL : {} tenant: {}",
-                fileUrl, tenant
+                "Ingestion URL : {}",
+                fileUrl
         );
 
         try (InputStream is =
                      new URL(fileUrl).openStream()) {
 
             String text = extractTextFromPdf(is);
-            ingestText(
-                    text, docType, fileUrl, tenant
-            );
+            ingestText(text, docType, fileUrl);
 
         } catch (Exception e) {
             log.error(
@@ -72,12 +69,11 @@ public class IngestionService {
     @Transactional
     public void ingestFromFile(
             File file,
-            DocType docType,
-            String tenant) {
+            DocType docType) {
 
         log.info(
-                "Ingestion fichier : {} tenant: {}",
-                file.getName(), tenant
+                "Ingestion fichier : {}",
+                file.getName()
         );
 
         if (!file.exists() || file.length() == 0) {
@@ -107,7 +103,7 @@ public class IngestionService {
 
             ingestText(
                     text, docType,
-                    file.getName(), tenant
+                    file.getName()
             );
 
         } catch (IngestionFailedException e) {
@@ -129,8 +125,7 @@ public class IngestionService {
     public void ingestText(
             String text,
             DocType docType,
-            String source,
-            String tenant) {
+            String source) {
 
         if (text == null || text.isBlank()) {
             throw new IngestionFailedException(
@@ -139,9 +134,7 @@ public class IngestionService {
         }
 
         // Supprimer chunks existants
-        chunkRepo.deleteByTenantAndSource(
-                tenant, source
-        );
+        chunkRepo.deleteBySource(source);
 
         // Découper en chunks
         List<String> chunks = splitIntoChunks(
@@ -171,15 +164,14 @@ public class IngestionService {
                 jdbcTemplate.update("""
                     INSERT INTO knowledge_base
                       (contenu, vecteur, source,
-                       doc_type, tenant, created_at)
+                       doc_type, created_at)
                     VALUES
-                      (?, ?::vector, ?, ?, ?, NOW())
+                      (?, ?::vector, ?, ?, NOW())
                     """,
                         chunk.trim(),
                         pgVector,
                         source,
-                        docType.name(),
-                        tenant
+                        docType.name()
                 );
 
                 log.debug(
@@ -197,7 +189,6 @@ public class IngestionService {
                 kc.setContenu(chunk.trim());
                 kc.setSource(source);
                 kc.setDocType(docType.name());
-                kc.setTenant(tenant);
                 kc.setCreatedAt(
                         LocalDateTime.now()
                 );
@@ -207,9 +198,8 @@ public class IngestionService {
         }
 
         log.info(
-                "Ingestion terminee — {} chunks "
-                        + "pour tenant: {}",
-                saved, tenant
+                "Ingestion terminee — {} chunks",
+                saved
         );
     }
 
