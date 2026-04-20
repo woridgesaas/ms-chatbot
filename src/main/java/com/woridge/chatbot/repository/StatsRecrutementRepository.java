@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface StatsRecrutementRepository
         extends JpaRepository<StatsRecrutement, Long> {
 
-    Optional<StatsRecrutement> findByTenantAndMois(
-            String tenant, LocalDate mois
+    Optional<StatsRecrutement> findByMois(
+            LocalDate mois
     );
 }

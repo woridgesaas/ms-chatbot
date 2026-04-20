@@ -13,7 +13,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core
         .JdbcTemplate;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -55,6 +54,7 @@ class RagServiceTest {
                 .thenReturn("[0.1,0.1,...]");
 
         // ── Mock pgvector SQL ──
+        // 1 seul paramètre maintenant (pgVector)
         List<String> mockChunks = Arrays.asList(
                 "Mariage du salarié 4 jours",
                 "Justificatif : acte de mariage",
@@ -63,15 +63,13 @@ class RagServiceTest {
         when(jdbcTemplate.queryForList(
                 anyString(),
                 eq(String.class),
-                anyString(),
                 anyString()
         )).thenReturn(mockChunks);
 
         // ── When ──
         List<String> result =
                 ragService.findRelevantChunks(
-                        "combien de jours mariage",
-                        "dev-local"
+                        "combien de jours mariage"
                 );
 
         // ── Then ──
@@ -100,7 +98,6 @@ class RagServiceTest {
         when(jdbcTemplate.queryForList(
                 anyString(),
                 eq(String.class),
-                anyString(),
                 anyString()
         )).thenReturn(List.of());
 
@@ -117,23 +114,21 @@ class RagServiceTest {
                 "Procédure de démission"
         );
 
-        when(chunkRepo.findAllByTenant(
-                "dev-local"
-        )).thenReturn(
-                Arrays.asList(chunk1, chunk2)
-        );
+        when(chunkRepo.findAll())
+                .thenReturn(
+                        Arrays.asList(
+                                chunk1, chunk2
+                        )
+                );
 
         // ── When ──
         List<String> result =
                 ragService.findRelevantChunks(
-                        "combien de jours mariage",
-                        "dev-local"
+                        "combien de jours mariage"
                 );
 
         // ── Then ──
         assertNotNull(result);
-        // Fallback TF-IDF doit trouver
-        // au moins le chunk mariage
         assertFalse(result.isEmpty());
     }
 
@@ -156,20 +151,17 @@ class RagServiceTest {
         when(jdbcTemplate.queryForList(
                 anyString(),
                 eq(String.class),
-                anyString(),
                 anyString()
         )).thenReturn(List.of());
 
         // ── Mock TF-IDF vide aussi ──
-        when(chunkRepo.findAllByTenant(
-                "empty-tenant"
-        )).thenReturn(List.of());
+        when(chunkRepo.findAll())
+                .thenReturn(List.of());
 
         // ── When ──
         List<String> result =
                 ragService.findRelevantChunks(
-                        "quelque chose",
-                        "empty-tenant"
+                        "quelque chose"
                 );
 
         // ── Then ──
@@ -194,20 +186,17 @@ class RagServiceTest {
         chunk.setContenu(
                 "Mariage 4 jours règlement"
         );
-        when(chunkRepo.findAllByTenant(
-                "dev-local"
-        )).thenReturn(List.of(chunk));
+        when(chunkRepo.findAll())
+                .thenReturn(List.of(chunk));
 
         // ── When ──
         List<String> result =
                 ragService.findRelevantChunks(
-                        "mariage",
-                        "dev-local"
+                        "mariage"
                 );
 
         // ── Then ──
         assertNotNull(result);
-        // TF-IDF a trouvé quelque chose
         assertFalse(result.isEmpty());
     }
 }

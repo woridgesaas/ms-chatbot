@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface StatsCongeRepository
         extends JpaRepository<StatsConge, Long> {
 
-    Optional<StatsConge> findByTenantAndMois(
-            String tenant, LocalDate mois
+    Optional<StatsConge> findByMois(
+            LocalDate mois
     );
 }

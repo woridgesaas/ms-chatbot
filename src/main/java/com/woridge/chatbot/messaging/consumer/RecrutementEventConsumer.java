@@ -4,12 +4,15 @@ import com.rabbitmq.client.Channel;
 import com.woridge.chatbot.config.RabbitMQConfig;
 import com.woridge.chatbot.messaging.event.*;
 import com.woridge.chatbot.model.StatsRecrutement;
-import com.woridge.chatbot.repository.StatsRecrutementRepository;
+import com.woridge.chatbot.repository
+        .StatsRecrutementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.annotation
+        .RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
-import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler
+        .annotation.Header;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -20,97 +23,132 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class RecrutementEventConsumer {
 
-    private final StatsRecrutementRepository repository;
+    private final StatsRecrutementRepository
+            repository;
 
-    @RabbitListener(queues = RabbitMQConfig.CHATBOT_JOB_OFFER_QUEUE)
+    @RabbitListener(
+            queues = RabbitMQConfig
+                    .CHATBOT_JOB_OFFER_QUEUE
+    )
     public void onOffrePubliee(
             OffrePublieeEvent event,
             Channel channel,
-            @Header(AmqpHeaders.DELIVERY_TAG) long tag)
+            @Header(AmqpHeaders.DELIVERY_TAG)
+            long tag)
             throws IOException {
         try {
-            log.info("OffrePubliee reçue tenant: {}",
-                    event.getTenant());
+            log.info("OffrePubliee reçue");
 
-            LocalDate mois = LocalDate.now().withDayOfMonth(1);
-            StatsRecrutement stats = getOrCreate(
-                    event.getTenant(), mois);
+            LocalDate mois = LocalDate.now()
+                    .withDayOfMonth(1);
+            StatsRecrutement stats =
+                    getOrCreate(mois);
+
             stats.setNbOffresPubliees(
-                    stats.getNbOffresPubliees() + 1);
+                    stats.getNbOffresPubliees() + 1
+            );
             stats.setNbOffresActives(
-                    stats.getNbOffresActives() + 1);
+                    stats.getNbOffresActives() + 1
+            );
             repository.save(stats);
 
             channel.basicAck(tag, false);
         } catch (Exception e) {
-            log.error("Erreur OffrePubliee : {}", e.getMessage());
+            log.error(
+                    "Erreur OffrePubliee : {}",
+                    e.getMessage()
+            );
             channel.basicNack(tag, false, true);
         }
     }
 
-    @RabbitListener(queues = RabbitMQConfig.CHATBOT_JOB_OFFER_QUEUE)
+    @RabbitListener(
+            queues = RabbitMQConfig
+                    .CHATBOT_JOB_OFFER_QUEUE
+    )
     public void onCandidatureRecue(
             CandidatureRecueEvent event,
             Channel channel,
-            @Header(AmqpHeaders.DELIVERY_TAG) long tag)
+            @Header(AmqpHeaders.DELIVERY_TAG)
+            long tag)
             throws IOException {
         try {
-            log.info("CandidatureRecue tenant: {}",
-                    event.getTenant());
+            log.info("CandidatureRecue reçue");
 
-            LocalDate mois = LocalDate.now().withDayOfMonth(1);
-            StatsRecrutement stats = getOrCreate(
-                    event.getTenant(), mois);
+            LocalDate mois = LocalDate.now()
+                    .withDayOfMonth(1);
+            StatsRecrutement stats =
+                    getOrCreate(mois);
+
             stats.setNbCandidatures(
-                    stats.getNbCandidatures() + 1);
+                    stats.getNbCandidatures() + 1
+            );
             stats.setNbCandidaturesEnAttente(
-                    stats.getNbCandidaturesEnAttente() + 1);
+                    stats.getNbCandidaturesEnAttente() + 1
+            );
             repository.save(stats);
 
             channel.basicAck(tag, false);
         } catch (Exception e) {
-            log.error("Erreur CandidatureRecue : {}",
-                    e.getMessage());
+            log.error(
+                    "Erreur CandidatureRecue : {}",
+                    e.getMessage()
+            );
             channel.basicNack(tag, false, true);
         }
     }
 
-    @RabbitListener(queues = RabbitMQConfig.CHATBOT_INTERVIEW_QUEUE)
+    @RabbitListener(
+            queues = RabbitMQConfig
+                    .CHATBOT_INTERVIEW_QUEUE
+    )
     public void onEntretien(
             EntretienEvent event,
             Channel channel,
-            @Header(AmqpHeaders.DELIVERY_TAG) long tag)
+            @Header(AmqpHeaders.DELIVERY_TAG)
+            long tag)
             throws IOException {
         try {
-            log.info("Entretien {} tenant: {}",
-                    event.getType(), event.getTenant());
+            log.info(
+                    "Entretien {}",
+                    event.getType()
+            );
 
-            LocalDate mois = LocalDate.now().withDayOfMonth(1);
-            StatsRecrutement stats = getOrCreate(
-                    event.getTenant(), mois);
+            LocalDate mois = LocalDate.now()
+                    .withDayOfMonth(1);
+            StatsRecrutement stats =
+                    getOrCreate(mois);
 
-            if ("PLANIFIE".equals(event.getType())) {
+            if ("PLANIFIE".equals(
+                    event.getType()
+            )) {
                 stats.setNbEntretiensPlanifies(
-                        stats.getNbEntretiensPlanifies() + 1);
-            } else if ("EFFECTUE".equals(event.getType())) {
+                        stats.getNbEntretiensPlanifies() + 1
+                );
+            } else if ("EFFECTUE".equals(
+                    event.getType()
+            )) {
                 stats.setNbEntretiensEffectues(
-                        stats.getNbEntretiensEffectues() + 1);
+                        stats.getNbEntretiensEffectues() + 1
+                );
             }
 
             repository.save(stats);
             channel.basicAck(tag, false);
         } catch (Exception e) {
-            log.error("Erreur Entretien : {}", e.getMessage());
+            log.error(
+                    "Erreur Entretien : {}",
+                    e.getMessage()
+            );
             channel.basicNack(tag, false, true);
         }
     }
 
     private StatsRecrutement getOrCreate(
-            String tenant, LocalDate mois) {
+            LocalDate mois) {
         return repository
-                .findByTenantAndMois(tenant, mois)
+                .findByMois(mois)
                 .orElse(StatsRecrutement.builder()
-                        .tenant(tenant)
                         .mois(mois)
                         .build());
     }

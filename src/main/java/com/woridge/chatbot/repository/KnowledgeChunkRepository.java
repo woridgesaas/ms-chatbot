@@ -10,12 +10,8 @@ import java.util.List;
 public interface KnowledgeChunkRepository
         extends JpaRepository<KnowledgeChunk, Long> {
 
-    List<KnowledgeChunk> findAllByTenant(
-            String tenant
-    );
+    // JpaRepository fournit déjà findAll()
+    // Pas besoin de findAllByTenant
 
-    void deleteByTenantAndSource(
-            String tenant,
-            String source
-    );
+    void deleteBySource(String source);
 }

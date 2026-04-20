@@ -29,7 +29,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -81,7 +80,6 @@ class ChatServiceTest {
         );
         request.setUserId("S760251");
         request.setRole("EMPLOYEE");
-        request.setTenant("dev-local");
 
         // Mock properties RAG
         lenient().when(properties.getRag())
@@ -125,10 +123,8 @@ class ChatServiceTest {
         emp.setPrenom("Imane");
         emp.setSoldeConge(18);
 
-        when(employeRepo
-                .findByUserIdAndTenant(
-                        "S760251", "dev-local"
-                )).thenReturn(Optional.of(emp));
+        when(employeRepo.findByUserId("S760251"))
+                .thenReturn(Optional.of(emp));
 
         // ── Mock LLM ──
         when(llmService.generateResponse(
@@ -163,9 +159,7 @@ class ChatServiceTest {
         verify(classifierService, times(1))
                 .classify("mon solde de congé");
         verify(employeRepo, times(1))
-                .findByUserIdAndTenant(
-                        "S760251", "dev-local"
-                );
+                .findByUserId("S760251");
         verify(llmService, times(1))
                 .generateResponse(
                         anyString(),
@@ -200,10 +194,9 @@ class ChatServiceTest {
         )).thenReturn(true);
 
         // ── Employee NOT found ──
-        when(employeRepo
-                .findByUserIdAndTenant(
-                        anyString(), anyString()
-                )).thenReturn(Optional.empty());
+        when(employeRepo.findByUserId(
+                anyString()
+        )).thenReturn(Optional.empty());
 
         // ── Then : exception ──
         assertThrows(
@@ -247,7 +240,7 @@ class ChatServiceTest {
                 "Justificatif : acte de mariage"
         );
         when(ragService.findRelevantChunks(
-                anyString(), anyString()
+                anyString()
         )).thenReturn(chunks);
 
         // ── Mock LLM ──
@@ -273,8 +266,7 @@ class ChatServiceTest {
         // Vérifier que RAG a été appelé
         verify(ragService, times(1))
                 .findRelevantChunks(
-                        "combien de jours mariage",
-                        "dev-local"
+                        "combien de jours mariage"
                 );
     }
 
@@ -310,10 +302,9 @@ class ChatServiceTest {
         emp.setNom("Ammari");
         emp.setPrenom("Imane");
         emp.setSoldeConge(18);
-        when(employeRepo
-                .findByUserIdAndTenant(
-                        anyString(), anyString()
-                )).thenReturn(Optional.of(emp));
+        when(employeRepo.findByUserId(
+                anyString()
+        )).thenReturn(Optional.of(emp));
 
         // ── Mock LLM ──
         when(llmService.generateResponse(
@@ -329,7 +320,7 @@ class ChatServiceTest {
         // RAG NE doit PAS être appelé
         verify(ragService, never())
                 .findRelevantChunks(
-                        anyString(), anyString()
+                        anyString()
                 );
     }
 }

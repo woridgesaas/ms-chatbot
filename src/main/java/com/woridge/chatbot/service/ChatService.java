@@ -39,14 +39,16 @@ public class ChatService {
 
     public ChatResponse chat(ChatRequest request) {
 
-        log.info("Question — user: {} tenant: {}",
-                request.getUserId(), request.getTenant());
+        log.info(
+                "Question — user: {}",
+                request.getUserId()
+        );
 
         // ── Étape 1 : Classifier ──
         IntentResult intentResult = classifierService
                 .classify(request.getQuestion());
 
-        IntentType intent    = intentResult.getIntent();
+        IntentType intent     = intentResult.getIntent();
         double     confidence = intentResult.getConfidence();
 
         log.info("Intent: {} confidence: {}",
@@ -61,8 +63,7 @@ public class ChatService {
         // ── Étape 3 : Données ──
         String data = fetchData(
                 intent,
-                request.getUserId(),
-                request.getTenant()
+                request.getUserId()
         );
 
         // ── Étape 4 : RAG si besoin ──
@@ -73,8 +74,7 @@ public class ChatService {
                 || confidence < properties
                 .getRag().getConfidenceThreshold()) {
             ragChunks = ragService.findRelevantChunks(
-                    request.getQuestion(),
-                    request.getTenant()
+                    request.getQuestion()
             );
         }
 
@@ -94,8 +94,7 @@ public class ChatService {
 
     private String fetchData(
             IntentType intent,
-            String userId,
-            String tenant) {
+            String userId) {
 
         LocalDate moisCourant =
                 LocalDate.now().withDayOfMonth(1);
@@ -106,7 +105,7 @@ public class ChatService {
 
             case SOLDE_CONGE -> {
                 var emp = employeRepo
-                        .findByUserIdAndTenant(userId, tenant)
+                        .findByUserId(userId)
                         .orElseThrow(() ->
                                 new EmployeeNotFoundException(
                                         "Employé non trouvé : "
@@ -123,7 +122,7 @@ public class ChatService {
 
             case FICHE_PAIE -> {
                 var emp = employeRepo
-                        .findByUserIdAndTenant(userId, tenant)
+                        .findByUserId(userId)
                         .orElseThrow(() ->
                                 new EmployeeNotFoundException(
                                         "Employé non trouvé : "
@@ -147,13 +146,11 @@ public class ChatService {
 
             case STATS_PRESENCE -> {
                 var stats = congeRepo
-                        .findByTenantAndMois(
-                                tenant, moisCourant)
+                        .findByMois(moisCourant)
                         .orElseThrow(() ->
                                 new StatsNotAvailableException(
                                         "Stats présence non "
-                                                + "disponibles : "
-                                                + tenant
+                                                + "disponibles"
                                 ));
                 yield String.format(
                         "Présence ce mois : "
@@ -179,13 +176,11 @@ public class ChatService {
 
             case STATS_CONGE_EQUIPE -> {
                 var stats = congeRepo
-                        .findByTenantAndMois(
-                                tenant, moisCourant)
+                        .findByMois(moisCourant)
                         .orElseThrow(() ->
                                 new StatsNotAvailableException(
                                         "Stats congés non "
-                                                + "disponibles : "
-                                                + tenant
+                                                + "disponibles"
                                 ));
                 yield String.format(
                         "Congés ce mois : "
@@ -203,10 +198,8 @@ public class ChatService {
             // ── Liste et effectif ──
 
             case LISTE_EMPLOYES -> {
-                long count = employeRepo
-                        .countByTenant(tenant);
-                var emps = employeRepo
-                        .findAllByTenant(tenant);
+                long count = employeRepo.count();
+                var emps = employeRepo.findAll();
                 long actifs = emps.stream()
                         .filter(e ->
                                 e.getADemissionne() == null
@@ -225,8 +218,7 @@ public class ChatService {
             // ── Masse salariale ──
 
             case MASSE_SALARIALE -> {
-                var emps = employeRepo
-                        .findAllByTenant(tenant);
+                var emps = employeRepo.findAll();
                 double total = emps.stream()
                         .filter(e ->
                                 e.getSalaireActuel() != null)

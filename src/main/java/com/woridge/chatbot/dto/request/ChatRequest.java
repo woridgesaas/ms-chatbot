@@ -9,9 +9,8 @@ public class ChatRequest {
     @NotBlank(message = "Question requise")
     private String question;
 
-    // ← plus obligatoires
-    // Injectés par Kong via headers
+    // ← Injectés par Kong via headers
+    // X-User-CIN, X-User-Role
     private String userId;
     private String role;
-    private String tenant;
 }
