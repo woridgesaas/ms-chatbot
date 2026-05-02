@@ -101,9 +101,12 @@ public class ChatService {
 
         return switch (intent) {
 
-            // ── Données personnelles employé ──
-
-            case SOLDE_CONGE -> {
+            // ── Données personnelles complètes ──
+            // SOLDE_CONGE et FICHE_PAIE envoient
+            // TOUTES les infos employé pour que
+            // le LLM puisse répondre à toute
+            // question personnelle
+            case SOLDE_CONGE, FICHE_PAIE -> {
                 var emp = employeRepo
                         .findByUserId(userId)
                         .orElseThrow(() ->
@@ -111,39 +114,46 @@ public class ChatService {
                                         "Employé non trouvé : "
                                                 + userId
                                 ));
-                yield String.format(
-                        "Employé: %s %s · "
-                                + "Solde congé: %d jours restants",
-                        emp.getNom(),
-                        emp.getPrenom(),
-                        emp.getSoldeConge()
-                );
-            }
-
-            case FICHE_PAIE -> {
-                var emp = employeRepo
-                        .findByUserId(userId)
-                        .orElseThrow(() ->
-                                new EmployeeNotFoundException(
-                                        "Employé non trouvé : "
-                                                + userId
-                                ));
-                yield String.format(
-                        "Employé: %s %s · "
-                                + "Salaire %s: %.2f MAD",
-                        emp.getNom(),
-                        emp.getPrenom(),
-                        emp.getMoisSalaire() != null
-                                ? emp.getMoisSalaire()
-                                : "ce mois",
+                yield String.format("""
+                INFORMATIONS EMPLOYE
+                ─────────────────────
+                Nom: %s
+                Prénom: %s
+                Email: %s
+                Département: %s
+                Poste: %s
+                Salaire actuel: %.2f MAD
+                Mois salaire: %s
+                Solde congé: %d jours restants
+                A démissionné: %s
+                """,
+                        emp.getNom() != null
+                                ? emp.getNom() : "N/A",
+                        emp.getPrenom() != null
+                                ? emp.getPrenom() : "N/A",
+                        emp.getEmail() != null
+                                ? emp.getEmail() : "N/A",
+                        emp.getDepartement() != null
+                                ? emp.getDepartement()
+                                : "N/A",
+                        emp.getPoste() != null
+                                ? emp.getPoste() : "N/A",
                         emp.getSalaireActuel() != null
                                 ? emp.getSalaireActuel()
-                                : 0.0
+                                .doubleValue()
+                                : 0.0,
+                        emp.getMoisSalaire() != null
+                                ? emp.getMoisSalaire()
+                                : "N/A",
+                        emp.getSoldeConge() != null
+                                ? emp.getSoldeConge() : 0,
+                        emp.getADemissionne() != null
+                                && emp.getADemissionne()
+                                ? "Oui" : "Non"
                 );
             }
 
             // ── Statistiques présence ──
-
             case STATS_PRESENCE -> {
                 var stats = congeRepo
                         .findByMois(moisCourant)
@@ -163,7 +173,7 @@ public class ChatService {
                         stats.getNbAbsents(),
                         stats.getNbTotalEmployes(),
                         stats.getNbTotalEmployes() > 0
-                                ? (double)(
+                                ? (double) (
                                 stats.getNbTotalEmployes()
                                         - stats.getNbAbsents()
                         ) / stats.getNbTotalEmployes()
@@ -173,7 +183,6 @@ public class ChatService {
             }
 
             // ── Statistiques congés équipe ──
-
             case STATS_CONGE_EQUIPE -> {
                 var stats = congeRepo
                         .findByMois(moisCourant)
@@ -196,7 +205,6 @@ public class ChatService {
             }
 
             // ── Liste et effectif ──
-
             case LISTE_EMPLOYES -> {
                 long count = employeRepo.count();
                 var emps = employeRepo.findAll();
@@ -216,7 +224,6 @@ public class ChatService {
             }
 
             // ── Masse salariale ──
-
             case MASSE_SALARIALE -> {
                 var emps = employeRepo.findAll();
                 double total = emps.stream()
@@ -243,12 +250,10 @@ public class ChatService {
             }
 
             // ── Règlement — données depuis RAG ──
-
             case REGLEMENTS_RH ->
                     "Consultation règlement intérieur Woridge";
 
             // ── Hors scope ──
-
             case HORS_SCOPE ->
                     "Question hors périmètre RH Woridge";
         };

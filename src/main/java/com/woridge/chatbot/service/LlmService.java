@@ -26,50 +26,92 @@ public class LlmService {
 
         String ragContext = ragChunks.isEmpty()
                 ? ""
-                : "\n\nContexte reglementation:\n"
-                + String.join("\n---\n", ragChunks);
+                : "\n\nCONTEXTE REGLEMENT:\n"
+                + String.join(
+                "\n---\n", ragChunks
+        );
 
         // ── Détecter la langue ──
         String lang = detectLanguage(question);
         String langInstruction;
+        String noDataMessage;
 
         switch (lang) {
-            case "arabic" ->
-                    langInstruction =
-                            "You MUST respond entirely "
-                                    + "in Arabic language. "
-                                    + "كل الإجابة يجب أن تكون "
-                                    + "باللغة العربية فقط.";
-            case "english" ->
-                    langInstruction =
-                            "You MUST respond entirely "
-                                    + "in English language. "
-                                    + "Do not use French or Arabic.";
-            default ->
-                    langInstruction =
-                            "Tu DOIS repondre "
-                                    + "entierement en francais.";
+            case "arabic" -> {
+                langInstruction =
+                        "Réponds UNIQUEMENT en arabe. "
+                                + "أجب باللغة العربية فقط.";
+                noDataMessage =
+                        "ليس لدي هذه المعلومات في "
+                                + "ملفك الشخصي. "
+                                + "يرجى الاتصال بقسم "
+                                + "الموارد البشرية.";
+            }
+            case "english" -> {
+                langInstruction =
+                        "Respond ONLY in English.";
+                noDataMessage =
+                        "I don't have this information "
+                                + "in your HR profile. "
+                                + "Please contact HR.";
+            }
+            default -> {
+                langInstruction =
+                        "Réponds UNIQUEMENT en français.";
+                noDataMessage =
+                        "Je n'ai pas cette information "
+                                + "dans votre profil RH. "
+                                + "Contactez le service RH.";
+            }
         }
 
         String prompt = String.format("""
-            Tu es l'assistant RH de Woridge.
-            LANGUE : %s
-            Reponds en 2-3 phrases maximum.
-            Sois direct et concis.
-            Utilise uniquement les donnees
-            fournies ci-dessous.
-            Ne fais pas de calculs non demandes.
-
-            Donnees RH:
-            %s
-            %s
-
-            Question: %s
-
-            Reponse:
-            """,
+        Tu es l'assistant RH de Woridge.
+        
+        ═══════════════════════════════════════
+        RÈGLES ABSOLUES — à respecter STRICTEMENT
+        ═══════════════════════════════════════
+        
+        1. LANGUE : %s
+        
+        2. INTERDICTION D'INVENTER :
+           → Si les données ci-dessous ne
+             contiennent PAS la réponse exacte,
+             réponds EXACTEMENT :
+             "%s"
+           → N'invente JAMAIS de données.
+           → Ne déduis JAMAIS ce qui n'est pas écrit.
+           → Ne complète JAMAIS avec tes
+             connaissances générales.
+        
+        3. UTILISATION DES DONNÉES :
+           → Utilise UNIQUEMENT les données ci-dessous.
+           → Cite les valeurs EXACTES fournies.
+           → Ne fais pas de calculs non demandés.
+        
+        4. FORMAT RÉPONSE :
+           → 1 à 3 phrases maximum.
+           → Direct et concis.
+           → Ne répète pas la question.
+        
+        ═══════════════════════════════════════
+        DONNÉES DISPONIBLES
+        ═══════════════════════════════════════
+        %s
+        %s
+        
+        ═══════════════════════════════════════
+        QUESTION UTILISATEUR
+        ═══════════════════════════════════════
+        %s
+        
+        RÉPONSE (en respectant toutes les règles) :
+        """,
                 langInstruction,
-                data, ragContext, question
+                noDataMessage,
+                data,
+                ragContext,
+                question
         );
 
         // ── Essayer Ollama local d'abord ──
@@ -79,9 +121,7 @@ public class LlmService {
                         generateWithOllama(prompt);
                 if (result != null
                         && !result.isBlank()) {
-                    log.info(
-                            "Reponse via Ollama ✅"
-                    );
+                    log.info("Reponse via Ollama ✅");
                     return result.trim();
                 }
             } catch (Exception e) {
@@ -96,7 +136,6 @@ public class LlmService {
         // ── Fallback Groq ──
         return generateWithGroq(prompt);
     }
-
     // ── Détecter la langue ──
     private String detectLanguage(
             String question) {

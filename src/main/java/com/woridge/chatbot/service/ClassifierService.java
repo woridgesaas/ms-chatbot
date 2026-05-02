@@ -37,7 +37,7 @@ public class ClassifierService {
                     .bodyValue(Map.of("question", question))
                     .retrieve()
                     .bodyToMono(IntentResult.class)
-                    .timeout(Duration.ofSeconds(5))
+                    .timeout(Duration.ofSeconds(30))
                     .block();
 
             log.info("Intent : {} confidence : {}",

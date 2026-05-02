@@ -15,22 +15,7 @@ services:
       - chatbot_db_data:/var/lib/postgresql/data
     restart: always
     healthcheck:
-      test: ["CMD-SHELL",
-             "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - woridge-external-network
-
-  redis:
-    image: redis:7-alpine
-    container_name: ms-chatbot-redis
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    restart: always
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -63,35 +48,38 @@ services:
       SPRING_RABBITMQ_PORT: ${RABBITMQ_PORT}
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      # ── Ollama local ──
+      SPRING_DATA_REDIS_HOST: rag-redis
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
       OLLAMA_URL: http://ollama:11434
+      CLASSIFIER_URL: http://ms-classifier:5000
     ports:
       - "${SERVER_PORT}:8080"
     restart: always
     depends_on:
       database:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+      ms-classifier:
+        condition: service_started
     networks:
       - woridge-external-network
 
   ms-classifier:
     build:
-      context: ./ms-classifier
+      context: ../ms-classifier
       dockerfile: Dockerfile
     container_name: ms-classifier
     ports:
       - "5000:5000"
+    volumes:
+      - ../ms-classifier/model:/app/model
     restart: always
     networks:
       - woridge-external-network
 
 volumes:
   chatbot_db_data:
-  ollama_data:      # ← modèles persistés
+  ollama_data:
 
 networks:
   woridge-external-network:
